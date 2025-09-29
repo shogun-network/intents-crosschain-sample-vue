@@ -1,4 +1,4 @@
-# Using the Shogun Intents SDK for Same-Chain and Cross-Chain Swaps
+# Shogun Intents SDK Demo App – Same-Chain and Cross-Chain Swap Walkthrough
 
 This project is a Vue 3 + Vite demo that wires the Shogun Intents SDK into a unified swap UI. It covers both single-chain intents (source and destination on the same network) and cross-chain intents (bridging value to a different chain). Use this guide as a blueprint for integrating the SDK in other frontends.
 
@@ -24,7 +24,7 @@ The same composables can be invoked programmatically if you prefer not to use th
 File: `src/composables/useIntentsQuote.ts`
 
 - Normalizes chain IDs so that Reown’s identifiers map to the Intents SDK enums (`normalizeChainId`).
-- Converts user-entered amounts into smallest units with `parseUnits`.
+- Converts user-entered amounts into units with `parseUnits`.
 - Calls `QuoteProvider.getQuote` for both the live amount and a base "1 token" quote to show price per token.
 - Returns a reactive object containing:
   - `amountOut`/`amountOutUsd`

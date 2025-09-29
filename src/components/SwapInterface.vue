@@ -192,7 +192,7 @@ const { open } = useAppKit()
 const swap = useSwapStore()
 const quote = useIntentsQuote()
 const fromAmount = ref('')
-const config = useConfig()
+const evmConfig = useConfig()
 const { submitSwaps, isSubmitting } = useSubmitSwaps()
 const needsNetworkSwitch = computed(() => {
   const srcChainId = swap.srcChain?.id
@@ -211,6 +211,10 @@ const formattedAmountOut = computed(() => {
 const pricePerInputToken = computed(() => quote.value.pricePerInputToken)
 
 function handleSwapTokens() {
+  // Both sides must be populated before swapping selections.
+  if (!swap.srcToken || !swap.destToken || !swap.srcChain || !swap.destChain) {
+    return
+  }
   const tempToken = swap.srcToken
   swap.setSrcToken(swap.destToken!)
   swap.setDestToken(tempToken!)
@@ -235,9 +239,9 @@ async function handleSwapClick() {
       )
       if (!prepareNetwork) return
       await networkData.value.switchNetwork(prepareNetwork)
-      toast.success(`✅ Switched network to ${swap.srcChain?.name}`)
+      toast.success(`Switched network to ${swap.srcChain?.name}`)
     } catch {
-      toast.error('❌ Failed to switch network. Please try again.')
+      toast.error('Failed to switch network. Please try again.')
     }
     return
   }
@@ -250,7 +254,7 @@ async function handleSwapClick() {
       },
       accountAddress: connectionData.value.address as string,
       recipientAddress: swap.recipient,
-      config: config,
+      config: evmConfig,
     })
 
     if (!order) {
@@ -272,15 +276,15 @@ async function handleSwapClick() {
     )
 
     if (result.status) {
-      toast.success(`✅ Order created successfully!\nTx Hash: ${result.txHash}`)
+      toast.success(`Order created successfully!\nTx Hash: ${result.txHash}`)
     } else {
-      toast.error(result.message ?? '❌ Order submission failed.')
+      toast.error(result.message ?? 'Order submission failed.')
     }
   } catch (err) {
     toast.error(
       err instanceof Error
-        ? `❌ ${err.message}`
-        : '❌ An unexpected error occurred while creating the order.',
+        ? `${err.message}`
+        : 'An unexpected error occurred while creating the order.',
     )
   }
 }

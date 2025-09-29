@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import type { QuoteTypes } from '@/types'
 import type { CrossChainOrder, SingleChainOrder } from '@shogun-sdk/intents-sdk'
@@ -35,9 +35,10 @@ import { toast } from 'vue-sonner'
 
 export function useSubmitSwaps() {
   const isSubmitting = ref(false)
-  const config = useConfig()
-  const { walletProvider: solanaSigner } = useAppKitProvider<Provider>('solana')
-
+  const wagmiConfig = useConfig()
+  const config = computed(() => wagmiConfig)
+  const solanaProvider = useAppKitProvider<Provider>('solana')
+  const solanaSigner = computed(() => solanaProvider.walletProvider)
   const submitSwaps = async (
     chainId: number,
     isSingleChainSwap: boolean,
@@ -58,7 +59,7 @@ export function useSubmitSwaps() {
         }
 
         toast.info(TOAST_MESSAGES.TX_STAGES.SWAP.START)
-        const allowance = await readContract(config, {
+        const allowance = await readContract(config.value, {
           address: quote.inputToken.address as `0x${string}`,
           abi: erc20Abi,
           functionName: 'allowance',
@@ -72,7 +73,7 @@ export function useSubmitSwaps() {
 
         if (allowance < BigInt(inputAmount)) {
           toast.info(TOAST_MESSAGES.TX_STAGES.APPROVE.START)
-          const hash = await writeContract(config, {
+          const hash = await writeContract(config.value, {
             address: quote.inputToken.address as `0x${string}`,
             abi: erc20Abi,
             functionName: 'approve',
@@ -83,7 +84,7 @@ export function useSubmitSwaps() {
             chainId: Number(quote.inputToken.chainId),
           })
 
-          const tx = await waitForTransactionReceipt(config, {
+          const tx = await waitForTransactionReceipt(config.value, {
             hash,
             chainId: Number(quote.inputToken.chainId),
           })
@@ -97,7 +98,7 @@ export function useSubmitSwaps() {
           ? await getEVMSingleChainOrderTypedData(order as SingleChainOrder)
           : await getEVMCrossChainOrderTypedData(order as CrossChainOrder)
 
-        const signer = await getWalletClient(config)
+        const signer = await getWalletClient(config.value)
         if (!signer) throw new Error('No EVM signer available')
 
         const signature = await signer.signTypedData(serializeBigIntsToStrings(orderTypedData))
@@ -118,7 +119,8 @@ export function useSubmitSwaps() {
       if (chainId === ChainID.Solana) {
         const solanaProvider = new Connection(import.meta.env.VITE_SOLANA_RPC_URL, 'confirmed')
         if (!solanaProvider) throw new Error('Solana provider missing')
-        if (!solanaSigner?.publicKey) throw new Error('Solana wallet provider missing')
+
+        if (!solanaSigner.value) throw new Error('Solana wallet provider missing')
 
         if (isSingleChainSwap) {
           const { txBytes, orderAddress, secretNumber } =
@@ -129,7 +131,7 @@ export function useSubmitSwaps() {
           const transactionBytes = Uint8Array.from(txBytes)
           const versionedTransaction = VersionedTransaction.deserialize(transactionBytes)
 
-          const signedTransaction = await solanaSigner.signTransaction(versionedTransaction)
+          const signedTransaction = await solanaSigner.value.signTransaction(versionedTransaction)
           const transactionHash = await solanaProvider.sendRawTransaction(
             signedTransaction.serialize(),
           )
@@ -154,7 +156,7 @@ export function useSubmitSwaps() {
           const transactionBytes = Uint8Array.from(txBytes)
           const versionedTransaction = VersionedTransaction.deserialize(transactionBytes)
 
-          const signedTransaction = await solanaSigner.signTransaction(versionedTransaction)
+          const signedTransaction = await solanaSigner.value.signTransaction(versionedTransaction)
           const transactionHash = await solanaProvider.sendRawTransaction(
             signedTransaction.serialize(),
           )
