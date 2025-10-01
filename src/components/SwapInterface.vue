@@ -142,10 +142,10 @@
         <template v-else-if="!fromAmount || !quote.data">Enter Amount</template>
         <template v-else-if="!swap.isRecipientValid">Invalid Recipient</template>
         <template v-else-if="needsNetworkSwitch">Switch Network</template>
-        <template v-else-if="!isSubmitting">Swap Tokens</template>
-        <template v-else-if="isSubmitting">
+        <template v-else-if="isSubmitting || loading">
           <Loader2Icon class="animate-spin" />
         </template>
+        <template v-else> Swap Tokens </template>
       </UiButton>
 
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -188,7 +188,7 @@ const networkData = useAppKitNetwork()
 const connectionData = useAppKitAccount()
 const isConnected = computed(() => connectionData.value.isConnected)
 const { open } = useAppKit()
-
+const loading = ref(false)
 const swap = useSwapStore()
 const quote = useIntentsQuote()
 const fromAmount = ref('')
@@ -225,67 +225,72 @@ function handleSwapTokens() {
 }
 
 async function handleSwapClick() {
-  if (!isConnected.value) {
-    open()
-    return
-  }
-
-  if (!fromAmount.value || !quote.value.data) return
-
-  if (needsNetworkSwitch.value) {
-    try {
-      const prepareNetwork = networks.find(
-        (n) => n.id === denormalizeChainId(swap.srcChain?.id as string),
-      )
-      if (!prepareNetwork) return
-      await networkData.value.switchNetwork(prepareNetwork)
-      toast.success(`Switched network to ${swap.srcChain?.name}`)
-    } catch {
-      toast.error('Failed to switch network. Please try again.')
-    }
-    return
-  }
-
   try {
-    const order = await createOrder({
-      quote: {
-        ...quote.value.data,
-        pricePerInputToken: quote.value.pricePerInputToken,
-      },
-      accountAddress: connectionData.value.address as string,
-      recipientAddress: swap.recipient,
-      config: evmConfig,
-    })
-
-    if (!order) {
-      throw Error('❌ Order not generated')
+    loading.value = true
+    if (!isConnected.value) {
+      open()
+      return
     }
 
-    const isSingleChainSwap =
-      quote.value.data.inputToken.chainId === quote.value.data.outputToken.chainId
+    if (!fromAmount.value || !quote.value.data) return
 
-    const result = await submitSwaps(
-      quote.value.data.inputToken.chainId as number,
-      isSingleChainSwap,
-      connectionData.value.address as string,
-      order,
-      {
-        ...quote.value.data,
-        pricePerInputToken: quote.value.pricePerInputToken,
-      },
-    )
-
-    if (result.status) {
-      toast.success(`Order created successfully!\nTx Hash: ${result.txHash}`)
-    } else {
-      toast.error(result.message ?? 'Order submission failed.')
+    if (needsNetworkSwitch.value) {
+      try {
+        const prepareNetwork = networks.find(
+          (n) => n.id === denormalizeChainId(swap.srcChain?.id as string),
+        )
+        if (!prepareNetwork) return
+        await networkData.value.switchNetwork(prepareNetwork)
+        toast.success(`Switched network to ${swap.srcChain?.name}`)
+      } catch {
+        toast.error('Failed to switch network. Please try again.')
+      }
+      return
     }
-  } catch (err) {
-    toast.error(
-      err instanceof Error
-        ? `${err.message}`
-        : 'An unexpected error occurred while creating the order.',
-    )
+
+    try {
+      const order = await createOrder({
+        quote: {
+          ...quote.value.data,
+          pricePerInputToken: quote.value.pricePerInputToken,
+        },
+        accountAddress: connectionData.value.address as string,
+        recipientAddress: swap.recipient,
+        config: evmConfig,
+      })
+
+      if (!order) {
+        throw Error('❌ Order not generated')
+      }
+
+      const isSingleChainSwap =
+        quote.value.data.inputToken.chainId === quote.value.data.outputToken.chainId
+
+      const result = await submitSwaps(
+        quote.value.data.inputToken.chainId as number,
+        isSingleChainSwap,
+        connectionData.value.address as string,
+        order,
+        {
+          ...quote.value.data,
+          pricePerInputToken: quote.value.pricePerInputToken,
+        },
+      )
+
+      if (result.status) {
+        toast.success(`Order created successfully!\nTx Hash: ${result.txHash}`)
+      } else {
+        toast.error(result.message ?? 'Order submission failed.')
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? `${err.message}`
+          : 'An unexpected error occurred while creating the order.',
+      )
+    }
+  } finally {
+    loading.value = false
   }
 }
 </script>

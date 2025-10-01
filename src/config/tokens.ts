@@ -1,6 +1,6 @@
 import type { CoinGeckoCoin } from '@/types'
 import type { Token } from '@/types'
-import { BASE_USDC, BONK_TOKENS } from './constants'
+import { BASE_USDC, BONK_TOKENS, NATIVE_TOKENS } from './constants'
 import { ChainID } from '@shogun-sdk/intents-sdk'
 
 // Map CoinGecko response -> Token
@@ -22,5 +22,5 @@ export function mapCoinGeckoTokens(data: CoinGeckoCoin[] | CoinGeckoCoin[][]): T
 
 export async function fetchTokens(): Promise<Token[]> {
   const cgTokens = mapCoinGeckoTokens(BONK_TOKENS)
-  return [BASE_USDC, ...cgTokens]
+  return [...NATIVE_TOKENS, BASE_USDC, ...cgTokens]
 }

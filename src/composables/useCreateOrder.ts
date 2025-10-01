@@ -19,24 +19,6 @@ export async function createOrder({
 }): Promise<SingleChainOrder | CrossChainOrder | undefined> {
   const isSingleChain = quote.inputToken.chainId === quote.outputToken.chainId
   const deadline = Math.floor(Date.now() / 1000) + 3600
-
-  if (isSingleChain) {
-    return SingleChainOrder.create({
-      user: accountAddress,
-      chainId: quote.inputToken.chainId as ChainID,
-      tokenIn: quote.inputToken.address,
-      amountIn: quote.amountIn,
-      tokenOut: quote.outputToken.address,
-      destinationAddress: accountAddress,
-      deadline,
-      amountOutMin: quote.amountOut,
-    })
-  }
-
-  //  Cross-chain swap
-  if (!recipientAddress) {
-    throw new Error('Recipient address is required for cross-chain orders')
-  }
   if (!config) {
     throw new Error('config is required for cross-chain orders')
   }
@@ -65,6 +47,23 @@ export async function createOrder({
       chainId: Number(quote.inputToken.chainId),
       confirmations: 1,
     })
+  }
+  if (isSingleChain) {
+    return SingleChainOrder.create({
+      user: accountAddress,
+      chainId: quote.inputToken.chainId as ChainID,
+      tokenIn: quote.inputToken.address,
+      amountIn: quote.amountIn,
+      tokenOut: quote.outputToken.address,
+      destinationAddress: accountAddress,
+      deadline,
+      amountOutMin: quote.amountOut,
+    })
+  }
+
+  //  Cross-chain swap
+  if (!recipientAddress) {
+    throw new Error('Recipient address is required for cross-chain orders')
   }
 
   return CrossChainOrder.create({

@@ -1,5 +1,6 @@
 import type { Token } from '@/types'
 import { base } from '@reown/appkit/networks'
+import { SOLANA_CHAIN_ID } from '@shogun-sdk/money-legos'
 export const BASE_USDC: Token = {
   symbol: 'USDC',
   name: 'USD Coin (Base)',
@@ -8,6 +9,24 @@ export const BASE_USDC: Token = {
   address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base USDC contract
   decimals: 6,
 }
+export const NATIVE_TOKENS = [
+  {
+    symbol: 'ETH',
+    name: 'Ethereum',
+    icon: 'https://coin-images.coingecko.com/coins/images/279/large/ethereum.png?1696501628',
+    address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    decimals: 18,
+    chainId: base.id,
+  },
+  {
+    symbol: 'SOL',
+    name: 'Solana',
+    icon: 'https://coin-images.coingecko.com/coins/images/4128/large/solana.png?1696504756',
+    address: 'So11111111111111111111111111111111111111111', // wrapped SOL mint
+    decimals: 9,
+    chainId: SOLANA_CHAIN_ID,
+  },
+]
 export const TOAST_MESSAGES = {
   TX_STAGES: {
     APPROVE: {
