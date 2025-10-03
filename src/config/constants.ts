@@ -1,5 +1,6 @@
 import type { Token } from '@/types'
 import { base } from '@reown/appkit/networks'
+import { ChainID } from '@shogun-sdk/intents-sdk'
 import { SOLANA_CHAIN_ID } from '@shogun-sdk/money-legos'
 export const BASE_USDC: Token = {
   symbol: 'USDC',
@@ -22,9 +23,18 @@ export const NATIVE_TOKENS = [
     symbol: 'SOL',
     name: 'Solana',
     icon: 'https://coin-images.coingecko.com/coins/images/4128/large/solana.png?1696504756',
-    address: 'So11111111111111111111111111111111111111111', // wrapped SOL mint
+    address: 'So11111111111111111111111111111111111111111',
     decimals: 9,
     chainId: SOLANA_CHAIN_ID,
+  },
+
+  {
+    name: 'SUI',
+    symbol: 'SUI',
+    address: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI',
+    decimals: 9,
+    chainId: ChainID.Sui,
+    icon: `/images/${ChainID.Sui}.svg`,
   },
 ]
 export const TOAST_MESSAGES = {

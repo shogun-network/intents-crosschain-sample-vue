@@ -7,6 +7,7 @@
       </div>
     </main>
     <Toaster />
+    <WalletConnectDialog />
   </div>
 </template>
 
@@ -16,6 +17,7 @@ import SwapInterface from '@/components/SwapInterface.vue'
 import { useTokenStore } from '@/stores'
 import { Toaster } from 'vue-sonner'
 import { onMounted } from 'vue'
+import WalletConnectDialog from '@/components/WalletConnectDialog.vue'
 import 'vue-sonner/style.css'
 const tokenStore = useTokenStore()
 

@@ -37,9 +37,8 @@ import UiDialogContent from '@/components/ui/dialog/DialogContent.vue'
 import UiDialogHeader from '@/components/ui/dialog/DialogHeader.vue'
 import UiDialogTitle from '@/components/ui/dialog/DialogTitle.vue'
 import { ChevronDown } from 'lucide-vue-next'
-import { networks } from '@/config'
+import { SUPPORTED_CHAINS } from '@/config'
 import type { Chain } from '@/types'
-import { normalizeChainId } from '@/utils'
 
 const props = defineProps<{
   selectedChain: Chain | null
@@ -47,12 +46,6 @@ const props = defineProps<{
 }>()
 
 const open = ref(false)
-
-const SUPPORTED_CHAINS: Chain[] = networks.map((n) => ({
-  id: normalizeChainId(n.id),
-  name: n.name,
-  icon: `/images/${n.id}.svg`, // assumes you have an svg in /public/images/
-}))
 
 function handleChainSelect(chain: Chain) {
   props.onChainSelect(chain)

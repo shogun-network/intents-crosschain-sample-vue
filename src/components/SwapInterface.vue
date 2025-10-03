@@ -158,7 +158,15 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+
 import { useSwapStore } from '@/stores/swap'
+import { useSuiWalletConnectStore } from '@/stores'
+import { useSuiWallet } from '@/composables/useSuiWallet'
+import { useIntentsQuote } from '@/composables/useIntentsQuote'
+import { useSubmitSwaps } from '@/composables/useSubmitSwaps'
+import { createOrder } from '@/composables/useCreateOrder'
+
 import UiCard from '@/components/ui/card/Card.vue'
 import UiCardContent from '@/components/ui/card/CardContent.vue'
 import UiCardHeader from '@/components/ui/card/CardHeader.vue'
@@ -168,7 +176,7 @@ import UiInput from '@/components/ui/input/Input.vue'
 import TokenSelector from '@/components/TokenSelector.vue'
 import ChainSelector from '@/components/ChainSelector.vue'
 import { ArrowUpDown, Info, Loader2Icon } from 'lucide-vue-next'
-import { useIntentsQuote } from '@/composables/useIntentsQuote'
+
 import { formatUnits } from 'viem'
 import {
   denormalizeChainId,
@@ -176,64 +184,151 @@ import {
   formatUSD,
   normalizeChainId,
 } from '@/utils'
+
+/**
+ * Wallet SDKs (EVM/Solana/etc.)
+ */
 import { useAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/vue'
 import { networks } from '@/config'
-import { createOrder } from '@/composables/useCreateOrder'
 import { ChainID } from '@shogun-sdk/intents-sdk'
 import { useConfig } from '@wagmi/vue'
 import { toast } from 'vue-sonner'
-import { useSubmitSwaps } from '@/composables/useSubmitSwaps'
 
+// Network + wallet state from AppKit (used for EVM/Solana chains)
 const networkData = useAppKitNetwork()
 const connectionData = useAppKitAccount()
-const isConnected = computed(() => connectionData.value.isConnected)
 const { open } = useAppKit()
-const loading = ref(false)
-const swap = useSwapStore()
-const quote = useIntentsQuote()
-const fromAmount = ref('')
-const evmConfig = useConfig()
-const { submitSwaps, isSubmitting } = useSubmitSwaps()
-const needsNetworkSwitch = computed(() => {
-  const srcChainId = swap.srcChain?.id
-  return !!srcChainId && normalizeChainId(networkData.value.chainId as string) !== srcChainId
-})
 
+// Reactive loading state for the swap button
+const loading = ref(false)
+
+// Our global swap store (source/dest chain, tokens, amount, recipient, etc.)
+const swap = useSwapStore()
+
+// Fetches quotes (expected output amount, USD values, etc.)
+const quote = useIntentsQuote()
+
+// User input amount (for "from" token)
+const fromAmount = ref('')
+
+// Wagmi config (used for EVM transactions)
+const evmConfig = useConfig()
+
+// Submit logic for sending the actual swap transaction
+const { submitSwaps, isSubmitting } = useSubmitSwaps()
+
+// Make `srcChain` reactive (so UI updates when it changes)
+const { srcChain } = storeToRefs(swap)
+const srcChainId = computed(() => srcChain.value?.id)
+
+/* Wallet handling (AppKit vs Sui) */
+
+// Sui wallet integration
+const { currentAccount: suiAccount, isConnected: isSuiConnected } = useSuiWallet()
+const { openDialog: openSuiDialog } = useSuiWalletConnectStore()
+
+// Watch the input amount and update the store (as number)
 watch(fromAmount, (val) => {
   swap.setAmount(val ? Number(val) : 0)
 })
 
+/**
+ * Opens the correct wallet modal depending on selected chain:
+ * - If Sui → open Sui connector modal
+ * - Else (EVM/Solana/etc.) → open AppKit modal
+ */
+const openWalletModal = () => {
+  if (srcChainId.value === ChainID.Sui) {
+    openSuiDialog()
+  } else {
+    open()
+  }
+}
+
+/**
+ * Checks if user is connected:
+ * - If Sui chain → rely on Sui wallet state
+ * - Else → rely on AppKit wallet state
+ */
+const isConnected = computed(() => {
+  if (srcChainId.value === ChainID.Sui) {
+    return isSuiConnected.value
+  }
+  return connectionData.value.isConnected
+})
+
+/**
+ * Returns the correct user account address depending on chain type
+ */
+const accountAddress = computed(() => {
+  if (srcChainId.value === ChainID.Sui) {
+    return suiAccount.value?.address
+  }
+  return connectionData.value.address
+})
+
+/**
+ * Whether user needs to switch network in their wallet
+ * (only applies to EVM chains)
+ */
+const needsNetworkSwitch = computed(() => {
+  const srcChainId = swap.srcChain?.id
+  if (srcChainId === ChainID.Sui) return false
+  return !!srcChainId && normalizeChainId(networkData.value.chainId as string) !== srcChainId
+})
+
+/* Quote + Output formatting */
+
+// Format destination amount with proper decimals
 const formattedAmountOut = computed(() => {
   if (!quote.value.data?.amountOut || !swap.destToken?.decimals) return ''
   return formatUnits(quote.value.data.amountOut, swap.destToken.decimals)
 })
 
+// Display price per token (rate info)
 const pricePerInputToken = computed(() => quote.value.pricePerInputToken)
 
+/* UI Actions */
+
+/**
+ * Swaps source and destination (both chain + token)
+ */
 function handleSwapTokens() {
-  // Both sides must be populated before swapping selections.
   if (!swap.srcToken || !swap.destToken || !swap.srcChain || !swap.destChain) {
     return
   }
+
+  // Swap tokens
   const tempToken = swap.srcToken
   swap.setSrcToken(swap.destToken!)
   swap.setDestToken(tempToken!)
 
+  // Swap chains
   const tempChain = swap.srcChain
   swap.setSrcChain(swap.destChain!)
   swap.setDestChain(tempChain!)
 }
 
+/**
+ * Main Swap Button Action:
+ * - If not connected → ask user to connect wallet
+ * - If needs network switch → prompt wallet to switch
+ * - Else → create order & submit transaction
+ */
 async function handleSwapClick() {
   try {
     loading.value = true
+
+    // If no wallet connected → open modal
     if (!isConnected.value) {
-      open()
+      openWalletModal()
       return
     }
 
+    // If no input or quote data → block swap
     if (!fromAmount.value || !quote.value.data) return
 
+    // Handle EVM network mismatch
     if (needsNetworkSwitch.value) {
       try {
         const prepareNetwork = networks.find(
@@ -248,28 +343,30 @@ async function handleSwapClick() {
       return
     }
 
+    // Try to build an order and send transaction
     try {
+      // Step 1: Build the order payload
       const order = await createOrder({
         quote: {
           ...quote.value.data,
           pricePerInputToken: quote.value.pricePerInputToken,
         },
-        accountAddress: connectionData.value.address as string,
+        accountAddress: accountAddress.value as string,
         recipientAddress: swap.recipient,
         config: evmConfig,
       })
 
-      if (!order) {
-        throw Error('❌ Order not generated')
-      }
+      if (!order) throw Error('Order not generated')
 
+      // Step 2: Determine if this is a same-chain swap
       const isSingleChainSwap =
         quote.value.data.inputToken.chainId === quote.value.data.outputToken.chainId
 
+      // Step 3: Submit swap via submitSwaps()
       const result = await submitSwaps(
         quote.value.data.inputToken.chainId as number,
         isSingleChainSwap,
-        connectionData.value.address as string,
+        accountAddress.value as string,
         order,
         {
           ...quote.value.data,
@@ -277,12 +374,14 @@ async function handleSwapClick() {
         },
       )
 
+      // Step 4: Show success/failure notification
       if (result.status) {
-        toast.success(`Order created successfully!\nTx Hash: ${result.txHash}`)
+        toast.success(`Order created!\nTx Hash: ${result.txHash}`)
       } else {
         toast.error(result.message ?? 'Order submission failed.')
       }
     } catch (err) {
+      // Catch unexpected errors
       toast.error(
         err instanceof Error
           ? `${err.message}`
@@ -290,6 +389,7 @@ async function handleSwapClick() {
       )
     }
   } finally {
+    // Always clear loading spinner
     loading.value = false
   }
 }

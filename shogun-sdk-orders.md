@@ -135,14 +135,74 @@ if (!response.success) throw new Error('Failed to notify auctioneer')
 ```
 The auctioneer response confirms that the intent is now active; retain `txHash` to show progress to the user.
 
-## 7. Error Handling
+## 7. Submitting Sui Orders
+### 7.1 Generate Secrets (single-chain)
+Sui same-chain limit orders require a per-order secret. The SDK helper returns both the hash (used when building the transaction) and the number you later share with the auctioneer.
+```ts
+import { generateSuiLimitOrderSecretData } from '@shogun-sdk/intents-sdk'
+
+const { secretNumber, secretHash } = generateSuiLimitOrderSecretData(
+  singleChainOrder.tokenIn,
+  singleChainOrder.destinationAddress,
+)
+```
+
+### 7.2 Build the Transaction
+- **Single-chain:** Call `getSuiSingleChainLimitOrderTransaction` and pass the previously derived `secretHash` along with the guard address for your deployment (see `PROD_CROSS_CHAIN_GUARD_ADDRESSES[ChainID.Sui]` or your env).
+- **Cross-chain:** Use `getSuiOrderTransaction` directly; no secret hash is needed.
+
+```ts
+import {
+  getSuiOrderTransaction,
+  getSuiSingleChainLimitOrderTransaction,
+  PROD_CROSS_CHAIN_GUARD_ADDRESSES,
+  ChainID,
+} from '@shogun-sdk/intents-sdk'
+
+const guardAddress = PROD_CROSS_CHAIN_GUARD_ADDRESSES[ChainID.Sui]
+
+const singleChainTx = await getSuiSingleChainLimitOrderTransaction(
+  singleChainOrder,
+  secretHash,
+  guardAddress,
+)
+
+const crossChainTx = await getSuiOrderTransaction(crossChainOrder)
+```
+
+Both helpers resolve to a `Transaction` from `@mysten/sui/transactions` that can be signed through any wallet implementing the Sui Wallet Standard.
+
+### 7.3 Sign & Execute
+```ts
+const executionResult = await wallet.signAndExecuteTransaction({
+  transaction: singleChainTx,
+})
+
+const digest = executionResult.digest
+```
+
+For cross-chain orders, replace `singleChainTx` with `crossChainTx` in the call above.
+
+### 7.4 Notify the Auctioneer
+```ts
+const response = await singleChainOrder.sendToAuctioneer({
+  transactionHash: digest,
+  secretNumber, // omit when submitting cross-chain orders
+})
+
+if (!response.success) throw new Error('Failed to notify auctioneer')
+const intentId = response.data
+```
+
+## 8. Error Handling
 - All `sendToAuctioneer` methods resolve to `{ success: boolean; data?: unknown; error?: string }`.
 - Wrap calls in `try/catch` and surface `error` or thrown messages to the UI/logging system.
 
-## 8. Putting It Together
+## 9. Putting It Together
 1. Request a quote.
 2. Build the appropriate order type (single or cross-chain).
 3. For EVM, generate typed data, collect a user signature, and send to the auctioneer.
 4. For Solana, request instructions, sign the transaction bytes, broadcast, then notify the auctioneer.
+5. For Sui, derive secrets when needed, execute the transaction through a Sui wallet, and forward the digest to the auctioneer.
 
 These primitives are all provided by `@shogun-sdk/intents-sdk`; any additional wallet tooling (Wagmi, AppKit, custom custodial signers) can be swapped in as long as they supply signatures and RPC submissions at the indicated moments.

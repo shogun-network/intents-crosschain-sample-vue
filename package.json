@@ -16,6 +16,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@mysten/sui": "^1.38.0",
+    "@mysten/wallet-standard": "^0.17.0",
     "@reown/appkit": "^1.8.7",
     "@reown/appkit-adapter-solana": "^1.8.7",
     "@reown/appkit-adapter-wagmi": "^1.8.7",
@@ -29,6 +31,8 @@
     "@tanstack/vue-query": "^5.90.2",
     "@vueuse/core": "^13.9.0",
     "@wagmi/vue": "^0.2.11",
+    "@wallet-standard/core": "^1.1.1",
+    "@walletconnect/universal-provider": "^2.21.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-vue-next": "^0.544.0",
