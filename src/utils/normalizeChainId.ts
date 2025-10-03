@@ -17,7 +17,7 @@ export function normalizeChainId(chainId: string | number) {
   if (chainId === solana.id) {
     return ChainID.Solana
   }
-  return chainId
+  return Number(chainId)
 }
 export function denormalizeChainId(chainId: string | number) {
   if (chainId === ChainID.Solana) {

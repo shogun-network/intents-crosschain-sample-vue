@@ -138,11 +138,3 @@
     -moz-appearance: textfield;
   }
 }
-
-/* Gradients */
-.gradient-bg {
-  background: radial-gradient(ellipse at top, var(--gold-600) 0%, var(--base) 50%);
-}
-.chain-gradient {
-  background: linear-gradient(135deg, var(--gold-400) 0%, var(--accent) 100%);
-}

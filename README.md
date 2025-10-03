@@ -1,198 +1,265 @@
 # Shogun Intents SDK Vue Demo
 
-A Vue 3 + Vite sample application that showcases how to build same-chain and cross-chain swaps with the [Shogun Intents SDK](https://www.shogun.xyz/) across EVM, Solana, and Sui. It brings together Reown AppKit for wallet orchestration, Pinia for state, and a set of reusable composables that beginners can lift into their own frontends.
-
----
-
 ## Table of Contents
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Setup](#setup)
-- [Available Scripts](#available-scripts)
-- [Project Structure](#project-structure)
-- [How the Intents Flow Works](#how-the-intents-flow-works)
-  - [1. Collect the Intent](#1-collect-the-intent)
-  - [2. Price the Swap](#2-price-the-swap)
-  - [3. Build the Order](#3-build-the-order)
-  - [4. Submit to the Auctioneer](#4-submit-to-the-auctioneer)
-- [Wallet Connectivity](#wallet-connectivity)
-- [Token Catalog & Chain Metadata](#token-catalog--chain-metadata)
-- [Extending the Demo](#extending-the-demo)
+- [Why this repo](#why-this-repo)
+- [Quick start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Install and configure](#install-and-configure)
+  - [Daily commands](#daily-commands)
+- [Project map](#project-map)
+- [Intents SDK building blocks](#intents-sdk-building-blocks)
+  - [1. Discover tokens with getTokenList](#1-discover-tokens-with-gettokenlist)
+  - [2. Price the swap with QuoteProvider.getQuote](#2-price-the-swap-with-quoteprovidergetquote)
+  - [3. Build orders](#3-build-orders)
+  - [4. Submit to the auctioneer](#4-submit-to-the-auctioneer)
+- [End-to-end use cases](#end-to-end-use-cases)
+  - [Same-chain swap](#same-chain-swap)
+  - [Cross-chain swap](#cross-chain-swap)
+- [Working with the Vue app](#working-with-the-vue-app)
+- [Extending the demo](#extending-the-demo)
 - [Troubleshooting](#troubleshooting)
-- [Further Reading](#further-reading)
+- [Resources](#resources)
 
-## Features
+## Why this repo
 
-- Unified swap interface that covers EVM, Solana, and Sui flows.
-- Same-chain and cross-chain order creation with the Shogun Intents SDK.
-- Permit2-aware approvals for EVM, Solana instruction builders, and Sui transaction helpers.
-- AppKit-powered wallet management with a custom Sui wallet bridge.
-- Pinia state management, Vue Query data fetching, Tailwind styling, and reusable UI components.
+- Shows real-world usage of `@shogun-sdk/intents-sdk` in a Vue 3 + Vite codebase.
+- Demonstrates the full swap lifecycle: discover tokens, fetch quotes, create orders, submit intents.
+- Highlights the new `getTokenList` API so you can build ergonomic token selectors with pagination.
+- Acts as a starter template you can fork, customize, and deploy for AppKit-enabled dApps.
 
-## Tech Stack
+## Quick start
 
-- **Framework:** [Vue 3](https://vuejs.org/) + [Vite 7](https://vitejs.dev/)
-- **State:** [Pinia](https://pinia.vuejs.org/) stores for swap state and tokens
-- **Data Fetching:** [@tanstack/vue-query](https://tanstack.com/query/latest)
-- **Wallets:** [Reown AppKit](https://reown.com/appkit) adapters for Wagmi (EVM) & Solana, plus a custom Sui wallet composable
-- **Shogun Tooling:** `@shogun-sdk/intents-sdk` and `@shogun-sdk/money-legos`
-- **UI:** Tailwind CSS 4, Reka UI primitives, and Lucide icons
+### Prerequisites
 
-## Prerequisites
+- Node.js `^20.19.0` or `>=22.12.0`.
+- A package manager (`bun`, `npm`, or `pnpm`). The repo tracks a `bun.lock`.
+- Git for cloning, plus a Solana RPC endpoint if you intend to sign Solana transactions locally.
 
-- **Node.js:** `^20.19.0` or `>=22.12.0` (see `package.json` engines)
-- **Package manager:** npm, pnpm, or bun. A `bun.lock` is tracked, but any modern manager works.
-- **Git:** for cloning and version control
-- **RPC access:** A Solana RPC URL (Helius, Triton, QuickNode, etc.) for signing and broadcasting Solana transactions.
+### Install and configure
 
-## Setup
+```bash
+git clone https://github.com/your-org/intents-bounk.git
+cd intents-bounk
 
-1. **Clone and install dependencies**
+# choose any package manager you prefer
+bun install
+# or
+npm install
+# or
+pnpm install
+```
 
-   ```bash
-   git clone https://github.com/your-org/intents-bounk.git
-   cd intents-bounk
-   # pick one
-   bun install
-   # or
-   npm install
-   # or
-   pnpm install
-   ```
+Duplicate the sample env file and fill the values that apply to you:
 
-2. **Configure environment variables**
+```bash
+cp .env.example .env.local
+```
 
-   ```bash
-   cp .env.example .env.local
-   ```
+Required keys:
 
-   Populate the variables:
-   - `VITE_PROJECT_ID` – Required Reown/AppKit project ID. The repo ships with a localhost-safe default (see `src/config/index.ts`), but production apps must use their own.
-   - `VITE_SOLANA_RPC_URL` – HTTPS endpoint for Solana transactions.
+- `VITE_PROJECT_ID` – Reown/AppKit project ID. A local-safe fallback lives in `src/config/index.ts`, but production deployments must use your own ID.
+- `VITE_SOLANA_RPC_URL` – HTTPS RPC endpoint for Solana instructions and transaction submission.
 
-3. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-   Vite serves the app at [http://localhost:5173](http://localhost:5173) by default.
+### Daily commands
 
-## Available Scripts
+| Command              | Action                                                    |
+| -------------------- | --------------------------------------------------------- |
+| `npm run dev`        | Start Vite with HMR at `http://localhost:5173`.           |
+| `npm run build`      | Type-check (`vue-tsc`) and produce the production bundle. |
+| `npm run preview`    | Serve the built assets locally.                           |
+| `npm run type-check` | Run TypeScript diagnostics without building.              |
+| `npm run lint`       | Lint & auto-fix with ESLint.                              |
+| `npm run format`     | Format source files under `src/` with Prettier.           |
 
-| Command              | Description                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| `npm run dev`        | Start the Vite dev server with HMR.                                                   |
-| `npm run build`      | Type-check and build the production bundle (runs `vue-tsc --build` and `vite build`). |
-| `npm run preview`    | Preview the built app locally.                                                        |
-| `npm run type-check` | Run TypeScript diagnostics with `vue-tsc`.                                            |
-| `npm run lint`       | Lint and auto-fix using ESLint.                                                       |
-| `npm run format`     | Format files under `src/` with Prettier.                                              |
-
-## Project Structure
+## Project map
 
 ```
 src/
-├─ App.vue                  # AppKit bootstrap + root view
-├─ main.ts                  # Creates Vue app, installs Wagmi, Vue Query, Pinia
-├─ components/              # UI widgets (swap form, headers, dialogs)
-├─ composables/             # Intents SDK helpers (quotes, orders, submissions, Sui wallet)
-├─ config/                  # Network, token, and constant definitions
-├─ stores/                  # Pinia stores for swap state, tokens, Sui wallet dialog
-├─ utils/                   # Chain ID normalization, formatting, BigInt serialization
-├─ views/                   # Route-level views (Home swaps UI)
-└─ types/                   # Shared TypeScript interfaces
+├─ App.vue                  # AppKit bootstrap + routing shell
+├─ main.ts                  # Vue entrypoint, installs Wagmi, Vue Query, Pinia
+├─ components/
+│  ├─ SwapInterface.vue     # User flow for quote → order → submission
+│  ├─ TokenSelector.vue     # Token list modal powered by getTokenList
+│  └─ ui/…                  # Small UI primitives
+├─ composables/
+│  ├─ useIntentsQuote.ts    # Wraps QuoteProvider.getQuote
+│  ├─ useCreateOrder.ts     # Normalizes tokens and creates SDK orders
+│  └─ useSubmitSwaps.ts     # Sends orders on EVM, Solana, or Sui
+├─ config/                  # Chain + token metadata, constants
+├─ stores/
+│  ├─ swap.ts               # Swap form state
+│  └─ tokenStore.ts         # Pagination + caching around getTokenList
+├─ types/                   # Shared TypeScript contracts
+└─ utils/                   # Helpers (chain ID normalization, BigInt serialization)
 ```
 
-Key entry points:
+## Intents SDK building blocks
 
-- `src/components/SwapInterface.vue` drives the end-to-end swap experience.
-- `src/composables/useIntentsQuote.ts` wraps `QuoteProvider.getQuote` calls.
-- `src/composables/useCreateOrder.ts` constructs same-chain or cross-chain orders.
-- `src/composables/useSubmitSwaps.ts` handles approvals, signing, and auctioneer submissions for EVM, Solana, and Sui.
-- `src/composables/useSuiWallet.ts` provides a wallet-standard compatible bridge for Sui wallets.
+The demo keeps each SDK touchpoint isolated so you can reuse or swap in your own UI easily.
 
-## How the Intents Flow Works
+### 1. Discover tokens with getTokenList
 
-The demo breaks an intent submission down into four stages. Each stage is encapsulated in its own composable so you can reuse them elsewhere.
+`getTokenList` is the newest addition to the Intents SDK. It lets you query Shogun’s token catalog by symbol, name, or address while respecting chain boundaries and pagination. The Pinia store in `src/stores/tokenStore.ts` powers the token selector.
 
-### 1. Collect the Intent
+```ts
+import { ChainID, getTokenList, type TokenSearchResponse } from '@shogun-sdk/intents-sdk'
 
-File: `src/stores/swap.ts`
+const response: TokenSearchResponse = await getTokenList({
+  q: 'usdc', // optional search string or address
+  networkId: ChainID.Base, // required chain identifier
+  page: 1, // defaults to 1
+  limit: 20, // defaults to 50; we keep it at 20 for UI perf
+})
 
-- Stores the source/destination chains, tokens, amount, and optional recipient.
-- Validates the recipient format per chain (EVM checksum, Solana `PublicKey`, Sui address).
-- Exposes `isReady` so the UI can gate downstream calls until inputs are valid.
+console.log(response.results) // Array<TokenInfo>
+console.log(response.count) // total matches (for pagination)
+```
 
-### 2. Price the Swap
+Implementation highlights (`src/stores/tokenStore.ts`):
 
-File: `src/composables/useIntentsQuote.ts`
+- Tracks `tokens`, `page`, and `hasMore` so infinite scrolling is trivial.
+- Accepts `{ q, networkId, reset }` parameters and merges results safely.
+- Caches the last query, enabling quick refreshes without refetch wiring.
 
-- Normalizes chain IDs (AppKit ⟷ Intents SDK) with `normalizeChainId`.
-- Uses Vue Query to call `QuoteProvider.getQuote` for both the user-entered amount and a "1 token" reference quote.
-- Surfaces `amountOut`, USD estimates, and `minStablecoinsAmount` (used in cross-chain orders).
+To adapt this to your own app, replace the UI inside `TokenSelector.vue` and keep the store logic, or wire `getTokenList` directly into your framework of choice.
 
-### 3. Build the Order
+### 2. Price the swap with QuoteProvider.getQuote
 
-File: `src/composables/useCreateOrder.ts`
+`QuoteProvider.getQuote` returns the swap math for a given pair, amount, and chain routing combination.
 
-- Wraps native EVM tokens into their ERC-20 equivalents (via `CHAIN_CONFIGS` and a WETH `deposit`).
-- Chooses between `SingleChainOrder.create` and `CrossChainOrder.create` based on the selected networks.
-- Provides friendly errors when required parameters (like a recipient for cross-chain swaps) are missing.
+```ts
+import { QuoteProvider, ChainID } from '@shogun-sdk/intents-sdk'
 
-### 4. Submit to the Auctioneer
+const quote = await QuoteProvider.getQuote({
+  tokenIn: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+  tokenOut: '0x4200000000000000000000000000000000000006', // WETH on Base
+  sourceChainId: ChainID.Base,
+  destChainId: ChainID.Base,
+  amount: 1_000_000n, // 1 USDC (6 decimals)
+})
+```
 
-File: `src/composables/useSubmitSwaps.ts`
+In `src/composables/useIntentsQuote.ts` we:
 
-- **EVM:**
-  1. Resolves native tokens to wrapped addresses.
-  2. Checks allowances against `PERMIT2_ADDRESS`; submits approvals when needed.
-  3. Builds typed data (`getEVMSingleChainOrderTypedData` / `getEVMCrossChainOrderTypedData`) and signs with Wagmi.
-  4. Calls `order.sendToAuctioneer({ signature, nonce })` and surfaces the resulting hash.
-- **Solana:**
-  1. Creates a `Connection` using `VITE_SOLANA_RPC_URL`.
-  2. Requests instructions (`getSolanaSingleChainOrderInstructions` or `getSolanaCrossChainOrderInstructions`).
-  3. Deserializes, signs, and broadcasts the `VersionedTransaction` via the connected wallet.
-  4. Notifies the auctioneer with `orderPubkey` (and `secretNumber` for same-chain).
-- **Sui:**
-  1. Generates per-order secrets for orders when required.
-  2. Builds transactions with `getSuiSingleChainLimitOrderTransaction` or `getSuiOrderTransaction`.
-  3. Signs and executes the transaction through the Sui wallet composable.
-  4. Sends the digest to the auctioneer.
+- Derive params from the swap store and normalize chain IDs (AppKit ↔ SDK).
+- Fetch two quotes: the user’s amount and a “1 token” reference for per-token pricing.
+- Expose shape `{ amountOut, amountOutUsd, minStablecoinsAmount, pricePerInputToken }` for the UI.
 
-Each branch returns a `{ status, txHash?, message? }` object so the UI can show success and error toasts.
+### 3. Build orders
 
-## Wallet Connectivity
+Once you have a quote, the next decision is whether you’re staying on the same chain or bridging.
 
-- **EVM + Solana:** Powered by Reown AppKit (`src/App.vue`, `src/main.ts`). `useAppKitNetwork` ensures the user is on the correct source chain before submitting.
-- **Sui:** Managed via `useSuiWallet.ts`, which enumerates wallets through `@mysten/wallet-standard`, restores previous connections, and exposes signing helpers for messages and transactions. The `useSuiWalletConnectStore` drives the connect/disconnect dialog UI.
+```ts
+import { SingleChainOrder, CrossChainOrder, ChainID } from '@shogun-sdk/intents-sdk'
 
-## Token Catalog & Chain Metadata
+const order = await SingleChainOrder.create({
+  user: accountAddress,
+  chainId: ChainID.Base,
+  tokenIn: quote.inputToken.address,
+  amountIn: quote.amountIn,
+  tokenOut: quote.outputToken.address,
+  destinationAddress: accountAddress,
+  amountOutMin: quote.amountOut,
+  deadline: Math.floor(Date.now() / 1000) + 3600,
+})
+```
 
-- Chains are configured in `src/config/index.ts`, which ships with Base, Solana, and Sui (`SUPPORTED_CHAINS`).
-- Tokens load from `src/config/constants.ts` and `src/config/tokens.ts`. Replace `fetchTokens` with your own API or static list when moving to production.
-- Adding new chains usually requires:
-  - Extending `SUPPORTED_CHAINS` with the chain ID, name, and icon.
-  - Supplying wrapped token addresses in `CHAIN_CONFIGS` (from `@shogun-sdk/money-legos`).
-  - Providing wallet connectivity through AppKit or a custom adapter.
+Cross-chain creation adds destination chain metadata plus a minimum stablecoin guard:
 
-## Extending the Demo
+```ts
+const order = await CrossChainOrder.create({
+  user: accountAddress,
+  sourceChainId: quote.inputToken.chainId as ChainID,
+  sourceTokenAddress: quote.inputToken.address,
+  sourceTokenAmount: quote.amountIn,
+  destinationChainId: quote.outputToken.chainId as ChainID,
+  destinationTokenAddress: quote.outputToken.address,
+  destinationAddress: recipientAddress,
+  destinationTokenMinAmount: quote.amountOut,
+  minStablecoinAmount: quote.minStablecoinsAmount,
+  deadline,
+})
+```
 
-1. **Add more networks:** Update `networks` in `src/config/index.ts` and ensure AppKit supports them.
-2. **Persist quotes or orders server-side:** Extract the composables into API routes or serverless functions.
-3. **Customize the UI:** The swap interface is self-contained; you can replace components while reusing the composables.
-4. **Integrate analytics and monitoring:** Hook into the returned status objects to log swap lifecycle events.
+See `src/composables/useCreateOrder.ts` for production-ready handling:
+
+- Wraps EVM native assets (ETH, MATIC…) into their ERC-20 equivalents using `CHAIN_CONFIGS`.
+- Enforces recipient presence on cross-chain orders.
+- Delegates to Wagmi’s `writeContract` + `waitForTransactionReceipt` to wrap native tokens when required.
+
+### 4. Submit to the auctioneer
+
+With an order in hand, you still need to sign and broadcast chain-specific payloads. `src/composables/useSubmitSwaps.ts` centralizes this flow:
+
+- **EVM**
+  - Replace native addresses with wrapped addresses.
+  - Check and set ERC-20 allowance against `PERMIT2_ADDRESS`.
+  - Build EIP-712 typed data via `getEVMSingleChainOrderTypedData` or `getEVMCrossChainOrderTypedData`.
+  - Sign with Wagmi’s `signTypedData` and call `order.sendToAuctioneer({ signature, nonce })`.
+- **Solana**
+  - Build versioned transactions with `getSolanaSingleChainOrderInstructions` or `getSolanaCrossChainOrderInstructions`.
+  - Sign using AppKit’s injected wallet provider and broadcast through `@solana/web3.js`.
+  - Notify the Auctioneer with `orderPubkey` (and `secretNumber` for single-chain).
+- **Sui**
+  - For same-chain swaps, generate secrets with `generateSuiLimitOrderSecretData` and build transactions via `getSuiSingleChainLimitOrderTransaction`.
+  - For cross-chain, call `getSuiOrderTransaction`.
+  - Sign + execute using the wallet-standard bridge exposed by `useSuiWallet()`.
+  - Send transaction digests to the Auctioneer.
+
+Each branch returns `{ status, txHash?, message? }`, making it easy to display toast updates.
+
+## End-to-end use cases
+
+### Same-chain swap
+
+1. User selects tokens on the same chain (e.g., Base USDC → Base WETH). `TokenSelector.vue` calls `tokenStore.loadTokens({ networkId, q })` to populate the modal.
+2. `useIntentsQuote` fetches real-time pricing via `QuoteProvider.getQuote`.
+3. `createOrder` detects identical chain IDs and triggers `SingleChainOrder.create`.
+4. `useSubmitSwaps`:
+   - Ensures ERC-20 approvals through Permit2.
+
+- Signs the EIP-712 payload.
+- Sends the signed intent to the Auctioneer and returns the resulting hash.
+
+### Cross-chain swap
+
+1. User selects different source/destination chains (e.g., Base USDC → Solana USDC). Token search automatically scopes to the relevant chain each time the selector opens.
+2. Quotes are fetched with mismatched `sourceChainId` / `destChainId`.
+3. `createOrder` switches to `CrossChainOrder.create` and requires a recipient address.
+4. Submission branches to the destination network:
+   - Solana: build instructions, sign with the wallet, broadcast, then notify the Auctioneer.
+   - Sui: generate secret data, sign, submit, and forward the digest.
+   - EVM destination: similar to same-chain but with cross-chain typed data helpers.
+
+## Working with the Vue app
+
+Key UI integration points:
+
+- `src/components/SwapInterface.vue` orchestrates the entire user journey and composes the composables above.
+- `src/components/TokenSelector.vue` renders the token modal, consuming the token store and exposing callbacks when users scroll or select an entry.
+- `src/stores/tokenStore.ts` is your template for paginated token lists. Swap it out with your own styling or plug it into a different framework.
+- `src/stores/swap.ts` keeps the canonical swap state (tokens, chains, amounts) and exposes derived flags (`isReady`).
+- `src/utils/index.ts` includes helpers like `normalizeChainId` and BigInt serialization that keep the SDK APIs happy across browsers.
+
+## Extending the demo
+
+- Add more chains: update `SUPPORTED_CHAINS` inside `src/config/index.ts`, provide wrapped token info in `CHAIN_CONFIGS`, and ensure AppKit can connect to the network.
+- Persist orders server-side: move the composable logic into backend handlers to cache quotes or pre-sign payloads.
+- Swap in your component library: the composables expose plain functions, so you can port them to React, Svelte, or any existing Vue design system.
+- Integrate analytics: listen to the `{ status, txHash }` object returned from `submitSwaps` to log swap lifecycle events or trigger notifications.
 
 ## Troubleshooting
 
-- **Wallets not showing up?** Confirm your browser has the desired wallet extensions installed. Sui wallets must implement `@mysten/wallet-standard`.
-- **Solana submissions fail:** Double-check `VITE_SOLANA_RPC_URL` and ensure the connected wallet has sufficient SOL for fees.
-- **Wrapped token errors:** Make sure the chain you selected has a `wrapped` token address in `CHAIN_CONFIGS`.
-- **Permit2 approval loops:** Some tokens require setting allowance to `0` before increasing it. Modify the approval flow if you hit this edge case.
+- **Wallet list is empty:** Confirm the relevant browser extensions are installed. Sui wallets must support `@mysten/wallet-standard`.
+- **Solana submissions fail:** Ensure `VITE_SOLANA_RPC_URL` points to a healthy endpoint and that the wallet has enough SOL to cover fees.
+- **Allowance loops on EVM:** Some ERC-20 tokens require resetting allowance to `0` before increasing it. Adjust the approval flow if you encounter this edge case.
+- **Wrapped token missing:** Extend `CHAIN_CONFIGS` with the correct wrapped token address when enabling a new EVM chain.
 
-## Further Reading
+## Resources
 
-- [Shogun Intents SDK – Same-Chain & Cross-Chain Orders](./shogun-sdk-orders.md)
-- [Demo App Walkthrough](./demo-app.md)
-- [Reown AppKit Documentation](https://docs.reown.com/appkit)
-- [Mysten Wallet Standard](https://docs.sui.io/build/wallet-standard)
+- [`shogun-sdk-orders.md`](./shogun-sdk-orders.md) – deeper dive into order helpers & chain specifics.
+- [`demo-app.md`](./demo-app.md) – walkthrough of the Vue layers in this repo.
+- [Shogun Intents SDK docs](https://www.shogun.xyz/) – official guides and API references.
+- [Reown AppKit docs](https://docs.reown.com/appkit) – wallet orchestration reference.
+- [Mysten Wallet Standard](https://docs.sui.io/build/wallet-standard) – details on Sui wallet integration.

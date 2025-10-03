@@ -24,7 +24,7 @@ export const SUPPORTED_CHAINS: Chain[] = [
   ...networks.map((n) => ({
     id: normalizeChainId(n.id),
     name: n.name,
-    icon: `/images/${n.id}.svg`, // assumes you have svg in /public/images/
+    icon: `/images/${normalizeChainId(n.id)}.svg`,
   })),
 
   {

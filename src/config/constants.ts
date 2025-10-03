@@ -1,42 +1,3 @@
-import type { Token } from '@/types'
-import { base } from '@reown/appkit/networks'
-import { ChainID } from '@shogun-sdk/intents-sdk'
-import { SOLANA_CHAIN_ID } from '@shogun-sdk/money-legos'
-export const BASE_USDC: Token = {
-  symbol: 'USDC',
-  name: 'USD Coin (Base)',
-  icon: '/images/usdc.svg',
-  chainId: base.id,
-  address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base USDC contract
-  decimals: 6,
-}
-export const NATIVE_TOKENS = [
-  {
-    symbol: 'ETH',
-    name: 'Ethereum',
-    icon: 'https://coin-images.coingecko.com/coins/images/279/large/ethereum.png?1696501628',
-    address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-    decimals: 18,
-    chainId: base.id,
-  },
-  {
-    symbol: 'SOL',
-    name: 'Solana',
-    icon: 'https://coin-images.coingecko.com/coins/images/4128/large/solana.png?1696504756',
-    address: 'So11111111111111111111111111111111111111111',
-    decimals: 9,
-    chainId: SOLANA_CHAIN_ID,
-  },
-
-  {
-    name: 'SUI',
-    symbol: 'SUI',
-    address: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI',
-    decimals: 9,
-    chainId: ChainID.Sui,
-    icon: `/images/${ChainID.Sui}.svg`,
-  },
-]
 export const TOAST_MESSAGES = {
   TX_STAGES: {
     APPROVE: {
@@ -53,36 +14,6 @@ export const TOAST_MESSAGES = {
   },
   SAME_TOKEN_SELECTED: 'You cannot select the same token for both input and output',
 } as const
-
-export const BONK_TOKENS = [
-  {
-    id: 'useless-3',
-    symbol: 'useless',
-    name: 'Useless Coin',
-    image:
-      'https://coin-images.coingecko.com/coins/images/55684/large/coingeckoupdate.png?1755203747',
-    address: 'Dz9mQ9NzkBcCsuGPFJ3r1bS4wgqKMHBPiVuniW8Mbonk',
-    decimals: 9,
-  },
-  {
-    id: 'kori',
-    symbol: 'kori',
-    name: 'Kori',
-    image:
-      'https://coin-images.coingecko.com/coins/images/55882/large/Kori_sup_dawg.jpeg?1747556841',
-    address: 'HtTYHz1Kf3rrQo6AqDLmss7gq5WrkWAaXn3tupUZbonk',
-    decimals: 9,
-  },
-  {
-    id: 'bucky-2',
-    symbol: 'bucky',
-    name: 'Bucky',
-    image:
-      'https://coin-images.coingecko.com/coins/images/67805/large/u8ntohuwuyy37klrq7hgepm2rg4l.?1753915363',
-    address: '7hZmPPkBDYbFpvzQW54sX3DQHQjEVsVcCFRWsvCdbonk',
-    decimals: 9,
-  },
-]
 
 export const WETH_ABI = [
   {

@@ -9,7 +9,7 @@ import {
   SuiSignPersonalMessage,
 } from '@mysten/wallet-standard'
 import { SuiClient, getFullnodeUrl } from '@mysten/sui/client'
-import { Transaction } from '@mysten/sui/transactions'
+import { type Transaction } from '@mysten/sui/transactions'
 import type { WalletAccount } from '@wallet-standard/core'
 import type {
   SuiSignAndExecuteTransactionMethod,
@@ -18,7 +18,7 @@ import type {
   SuiSignPersonalMessageVersion,
   Wallet,
 } from '@mysten/wallet-standard'
-import type { SignedTransaction, SignedPersonalMessage } from '@mysten/wallet-standard'
+import type { SignedPersonalMessage } from '@mysten/wallet-standard'
 
 const currentWallet: Ref<Wallet | null> = ref(null)
 const currentAccount: Ref<WalletAccount | null> = ref(null)
@@ -151,28 +151,6 @@ export const useSuiWallet = () => {
     })
   }
 
-  const signTransaction = async (transaction: Transaction): Promise<SignedTransaction> => {
-    if (!currentWallet.value || !currentAccount.value) {
-      throw new Error('No wallet/account connected')
-    }
-
-    const feature = currentWallet.value.features['sui:signTransactionBlock'] as {
-      signTransactionBlock: (args: {
-        transactionBlock: Transaction
-        account: WalletAccount
-        chain: string
-      }) => Promise<SignedTransaction>
-    }
-
-    if (!feature) throw new Error('Wallet does not support signTransactionBlock')
-
-    return feature.signTransactionBlock({
-      transactionBlock: transaction,
-      account: currentAccount.value,
-      chain: SUI_MAINNET_CHAIN,
-    })
-  }
-
   const signMessage = async (message: string): Promise<SignedPersonalMessage> => {
     if (!currentWallet.value || !currentAccount.value) {
       throw new Error('No wallet/account connected')
@@ -203,7 +181,6 @@ export const useSuiWallet = () => {
     disconnect,
     restoreConnection,
     signAndExecuteTransaction,
-    signTransaction,
     signMessage,
     suiClient,
   }

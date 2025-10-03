@@ -27,3 +27,12 @@ export function formatNumberWithDecimalPlaces(num: number): string {
   // Format with up to 4 decimals, trim trailing zeros & dot
   return num.toFixed(4).replace(/\.?0+$/, '')
 }
+
+/**
+ * Shortens an address for UI display
+ * Example: 0x1234567890abcdef → 0x1234...cdef
+ */
+export function shortenAddress(addr?: string, chars = 4): string {
+  if (!addr) return ''
+  return `${addr.slice(0, 6)}...${addr.slice(-chars)}`
+}

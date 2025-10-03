@@ -47,6 +47,7 @@ import { Wallet, Menu } from 'lucide-vue-next'
 import { useSuiWalletConnectStore, useSwapStore } from '@/stores'
 import { useSuiWallet } from '@/composables/useSuiWallet'
 import { ChainID } from '@shogun-sdk/intents-sdk'
+import { shortenAddress } from '@/utils'
 
 /**
  * AppKit handles EVM/Solana wallets (MetaMask, Phantom, etc.)
@@ -103,11 +104,7 @@ const address = computed(() => {
 /**
  * Shortened address for UI display (0x1234...abcd)
  */
-const shortAddress = computed(() => {
-  if (!address.value) return ''
-  return `${address.value.slice(0, 6)}...${address.value.slice(-4)}`
-})
-
+const shortAddress = computed(() => shortenAddress(address.value))
 /**
  * Opens the correct wallet connect modal based on chain:
  * - Sui → open native Sui dialog

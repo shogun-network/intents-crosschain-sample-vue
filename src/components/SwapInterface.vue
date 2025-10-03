@@ -332,7 +332,7 @@ async function handleSwapClick() {
     if (needsNetworkSwitch.value) {
       try {
         const prepareNetwork = networks.find(
-          (n) => n.id === denormalizeChainId(swap.srcChain?.id as string),
+          (n) => n.id === denormalizeChainId(swap.srcChain?.id as number),
         )
         if (!prepareNetwork) return
         await networkData.value.switchNetwork(prepareNetwork)

@@ -2,11 +2,11 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { networks } from '@/config'
 import { solana } from '@reown/appkit/networks'
-import type { Chain, Token } from '@/types'
+import type { Chain } from '@/types'
 import { isAddress as isEvmAddress } from 'viem'
 import { PublicKey } from '@solana/web3.js'
 import { normalizeChainId } from '@/utils'
-import { ChainID } from '@shogun-sdk/intents-sdk'
+import { ChainID, type TokenInfo } from '@shogun-sdk/intents-sdk'
 import { isValidSuiAddress } from '@mysten/sui/utils'
 
 export const useSwapStore = defineStore('swap', () => {
@@ -15,14 +15,14 @@ export const useSwapStore = defineStore('swap', () => {
     ? {
         id: normalizeChainId(solanaNetwork.id),
         name: solanaNetwork.name,
-        icon: `/images/${solanaNetwork.id}.svg`,
+        icon: `/images/${normalizeChainId(solanaNetwork.id)}.svg`,
       }
     : null
 
   const srcChain = ref<Chain | null>(defaultChain)
   const destChain = ref<Chain | null>(defaultChain)
-  const srcToken = ref<Token | null>(null)
-  const destToken = ref<Token | null>(null)
+  const srcToken = ref<TokenInfo | null>(null)
+  const destToken = ref<TokenInfo | null>(null)
   const amount = ref<number>(0)
   const recipient = ref<string>('')
 
@@ -34,11 +34,11 @@ export const useSwapStore = defineStore('swap', () => {
     destChain.value = chain
   }
 
-  function setSrcToken(token: Token) {
+  function setSrcToken(token: TokenInfo) {
     srcToken.value = token
   }
 
-  function setDestToken(token: Token) {
+  function setDestToken(token: TokenInfo) {
     destToken.value = token
   }
 

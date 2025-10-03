@@ -1,15 +1,9 @@
+import type { TokenInfo } from '@shogun-sdk/intents-sdk'
+
 export interface Chain {
-  id: string | number
+  id: number
   name: string
   icon: string
-}
-export interface Token {
-  symbol: string
-  name: string
-  icon: string
-  chainId: string | number
-  address: string
-  decimals: number
 }
 
 // Minimal subset of CoinGecko response we care about
@@ -27,8 +21,8 @@ export interface QuoteTypes {
   amountOutUsd: number
   amountInUsd: number
   minStablecoinsAmount: bigint
-  inputToken: Token
-  outputToken: Token
+  inputToken: TokenInfo
+  outputToken: TokenInfo
   amountIn: bigint
   pricePerInputToken: string | null
 }
