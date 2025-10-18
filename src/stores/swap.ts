@@ -6,8 +6,7 @@ import type { Chain } from '@/types'
 import { isAddress as isEvmAddress } from 'viem'
 import { PublicKey } from '@solana/web3.js'
 import { normalizeChainId } from '@/utils'
-import { ChainID, type TokenInfo } from '@shogun-sdk/intents-sdk'
-import { isValidSuiAddress } from '@mysten/sui/utils'
+import { ChainId, type TokenInfo } from '@shogun-sdk/one-shot'
 
 export const useSwapStore = defineStore('swap', () => {
   const solanaNetwork = networks.find((n) => n.id === solana.id)
@@ -68,18 +67,13 @@ export const useSwapStore = defineStore('swap', () => {
     }
 
     // Solana validation
-    if (destChain.value.id === ChainID.Solana) {
+    if (destChain.value.id === ChainId.SOLANA) {
       try {
         new PublicKey(recipient.value)
         return true
       } catch {
         return false
       }
-    }
-
-    // Sui validation
-    if (destChain.value.id === ChainID.Sui) {
-      return isValidSuiAddress(recipient.value)
     }
 
     // EVM validation

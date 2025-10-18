@@ -24,4 +24,9 @@ export default defineConfig({
       crypto: 'crypto-browserify',
     },
   },
+  build: {
+    rollupOptions: {
+      external: ["vite-plugin-node-polyfills/shims/buffer","vite-plugin-node-polyfills/shims/process","vite-plugin-node-polyfills/shims/global"],
+    },
+  },
 })

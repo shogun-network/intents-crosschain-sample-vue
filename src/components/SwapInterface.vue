@@ -2,59 +2,72 @@
   <UiCard class="w-full max-w-md mx-auto bg-card/50 backdrop-blur-sm border-border/50">
     <UiCardHeader class="pb-4">
       <div class="flex items-center justify-between">
-        <UiCardTitle class="text-lg font-semibold text-balance">
+        <UiCardTitle class="text-lg font-semibold">
           {{ swap.srcChain?.id === swap.destChain?.id ? 'Swap' : 'Cross-Chain Swap' }}
         </UiCardTitle>
       </div>
     </UiCardHeader>
 
     <UiCardContent class="space-y-4">
+      <!-- FROM SECTION -->
       <div class="space-y-2">
         <div class="flex items-center justify-between text-sm">
           <span class="text-muted-foreground">From</span>
           <ChainSelector :selected-chain="swap.srcChain" :on-chain-select="swap.setSrcChain" />
         </div>
 
-        <div class="relative">
-          <div
-            class="flex items-center gap-2 p-4 rounded-lg bg-secondary/50 border border-border/50"
-          >
-            <div class="flex-1">
-              <UiInput
-                type="number"
-                placeholder="0.0"
-                v-model="fromAmount"
-                class="border-0 bg-transparent text-2xl font-semibold p-0 h-auto focus-visible:ring-0"
-              />
-              <div class="text-sm text-muted-foreground mt-1">
-                <span
-                  v-if="quote.isLoading"
-                  class="animate-pulse bg-muted rounded w-16 h-3 block"
-                ></span>
-                <span v-else>≈ {{ formatUSD(quote.data?.amountInUsd ?? '0.00') }}</span>
-              </div>
-            </div>
-            <TokenSelector
-              :chain="swap.srcChain"
-              :selected-token="swap.srcToken"
-              :on-token-select="swap.setSrcToken"
+        <!-- From Token Input -->
+        <div class="flex items-center gap-2 p-4 rounded-lg bg-secondary/50 border border-border/50">
+          <div class="flex-1">
+            <UiInput
+              type="number"
+              placeholder="0.0"
+              v-model="fromAmount"
+              class="border-0 bg-transparent text-2xl font-semibold p-0 h-auto focus-visible:ring-0"
             />
+            <div class="text-sm text-muted-foreground mt-1">
+              <span
+                v-if="quote.isLoading.value"
+                class="animate-pulse bg-muted rounded w-16 h-3 block"
+              ></span>
+              <!-- <span v-else>≈ {{ formatUSD(quote.data?.amountInUsd ?? '0.00') }}</span> -->
+            </div>
           </div>
+          <TokenSelector
+            :chain="swap.srcChain"
+            :selected-token="swap.srcToken"
+            :on-token-select="swap.setSrcToken"
+          />
         </div>
 
+        <!-- Balance + Max -->
         <div class="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Balance: 0.0 {{ swap.srcToken?.symbol }}</span>
+          <span>
+            Balance:
+            <template v-if="balanceLoading">
+              <Skeleton class="h-3 w-16 rounded" />
+            </template>
+            <template v-else>
+              {{
+                formatNumberWithDecimalPlaces(
+                  Number(getTokenBalance(swap.srcToken?.address, swap.srcChain?.id)),
+                )
+              }}
+              {{ swap.srcToken?.symbol }}
+            </template>
+          </span>
           <UiButton
             variant="ghost"
             size="sm"
             class="h-auto p-0 text-xs text-primary"
-            @click="fromAmount = '100'"
+            @click="setMaxAmount"
           >
             Max
           </UiButton>
         </div>
       </div>
 
+      <!-- SWAP DIRECTION TOGGLE -->
       <div class="flex justify-center">
         <UiButton
           variant="ghost"
@@ -66,46 +79,57 @@
         </UiButton>
       </div>
 
+      <!-- TO SECTION -->
       <div class="space-y-2">
         <div class="flex items-center justify-between text-sm">
           <span class="text-muted-foreground">To</span>
           <ChainSelector :selected-chain="swap.destChain" :on-chain-select="swap.setDestChain" />
         </div>
 
-        <div class="relative">
-          <div
-            class="flex items-center gap-2 p-4 rounded-lg bg-secondary/50 border border-border/50"
-          >
-            <div class="flex-1">
-              <UiInput
-                type="number"
-                placeholder="0.0"
-                :value="formatNumberWithDecimalPlaces(Number(formattedAmountOut))"
-                readonly
-                class="border-0 bg-transparent text-2xl font-semibold p-0 h-auto focus-visible:ring-0"
-              />
-              <div class="text-sm text-muted-foreground mt-1">
-                <span
-                  v-if="quote.isLoading"
-                  class="animate-pulse bg-muted rounded w-16 h-3 block"
-                ></span>
-                <span v-else>≈ {{ formatUSD(quote.data?.amountOutUsd ?? '0.00') }}</span>
-              </div>
-            </div>
-            <TokenSelector
-              :chain="swap.destChain"
-              :selected-token="swap.destToken"
-              :on-token-select="swap.setDestToken"
+        <div class="flex items-center gap-2 p-4 rounded-lg bg-secondary/50 border border-border/50">
+          <div class="flex-1">
+            <UiInput
+              type="number"
+              placeholder="0.0"
+              :value="formattedAmountOut"
+              readonly
+              class="border-0 bg-transparent text-2xl font-semibold p-0 h-auto focus-visible:ring-0"
             />
+            <div class="text-sm text-muted-foreground mt-1">
+              <span
+                v-if="quote.isLoading.value"
+                class="animate-pulse bg-muted rounded w-16 h-3 block"
+              ></span>
+              <!-- <span v-else>≈ {{ formatUSD(quote.data?.amountOutUsd ?? '0.00') }}</span> -->
+            </div>
           </div>
+          <TokenSelector
+            :chain="swap.destChain"
+            :selected-token="swap.destToken"
+            :on-token-select="swap.setDestToken"
+          />
         </div>
 
         <div class="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Balance: 0.0 {{ swap.destToken?.symbol }}</span>
+          <span>
+            Balance:
+            <template v-if="balanceLoading">
+              <Skeleton class="h-3 w-16 rounded" />
+            </template>
+            <template v-else>
+              {{
+                formatNumberWithDecimalPlaces(
+                  Number(getTokenBalance(swap.destToken?.address, swap.destChain?.id)),
+                )
+              }}
+              {{ swap.destToken?.symbol }}
+            </template>
+          </span>
         </div>
       </div>
 
-      <div v-if="swap.srcChain?.id !== swap.destChain?.id" class="space-y-2">
+      <!-- RECIPIENT INPUT (cross-chain only) -->
+      <div v-if="isConnected && swap.srcChain?.id !== swap.destChain?.id" class="space-y-2">
         <label class="text-sm text-muted-foreground">Recipient</label>
         <UiInput
           type="text"
@@ -117,22 +141,33 @@
           ]"
         />
         <p v-if="!swap.isRecipientValid && swap.recipient" class="text-xs text-red-500">
-          Invalid {{ swap.destChain?.id === ChainID.Solana ? 'Solana' : 'EVM' }} address
+          Invalid {{ swap.destChain?.id === ChainId.SOLANA ? 'Solana' : 'EVM' }} address
         </p>
       </div>
 
+      <!-- RATE INFO -->
       <div v-if="quote.data" class="space-y-2 p-3 rounded-lg bg-muted/30 border border-border/30">
         <div class="flex items-center justify-between text-sm">
           <span class="text-muted-foreground">Rate</span>
-          <span v-if="quote.isLoading" class="animate-pulse bg-muted rounded w-24 h-3 block"></span>
+          <span
+            v-if="quote.isLoading.value"
+            class="animate-pulse bg-muted rounded w-24 h-3 block"
+          ></span>
           <span v-else>
             1 {{ swap.srcToken?.symbol }} =
-            {{ formatNumberWithDecimalPlaces(Number(pricePerInputToken ?? '0.00')) }}
+            {{
+              formatNumberWithDecimalPlaces(
+                Number(
+                  formatUnits(BigInt(pricePerInputToken ?? '0'), swap.destToken?.decimals ?? 18),
+                ),
+              )
+            }}
             {{ swap.destToken?.symbol }}
           </span>
         </div>
       </div>
 
+      <!-- SWAP BUTTON -->
       <UiButton
         @click="handleSwapClick"
         class="w-full h-12 text-base font-semibold chain-gradient hover:opacity-90 transition-opacity"
@@ -142,12 +177,11 @@
         <template v-else-if="!fromAmount || !quote.data">Enter Amount</template>
         <template v-else-if="!swap.isRecipientValid">Invalid Recipient</template>
         <template v-else-if="needsNetworkSwitch">Switch Network</template>
-        <template v-else-if="isSubmitting || loading">
-          <Loader2Icon class="animate-spin" />
-        </template>
-        <template v-else> Swap Tokens </template>
+        <template v-else-if="loading"><Loader2Icon class="animate-spin" /></template>
+        <template v-else>Swap Tokens</template>
       </UiButton>
 
+      <!-- FOOTNOTE -->
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
         <Info class="w-3 h-3" />
         <span>Cross-chain swaps are powered by secure bridge protocols</span>
@@ -157,185 +191,168 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { storeToRefs } from 'pinia'
-
+import { ref, computed, watch, onMounted } from 'vue'
 import { useSwapStore } from '@/stores/swap'
-import { useSuiWalletConnectStore } from '@/stores'
-import { useSuiWallet } from '@/composables/useSuiWallet'
-import { useIntentsQuote } from '@/composables/useIntentsQuote'
-import { useSubmitSwaps } from '@/composables/useSubmitSwaps'
-import { createOrder } from '@/composables/useCreateOrder'
+import { useAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/vue'
+import { useConfig } from '@wagmi/vue'
+import { toast } from 'vue-sonner'
+import { ArrowUpDown, Info, Loader2Icon } from 'lucide-vue-next'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatUnits, parseUnits } from 'viem'
+import { ChainId } from '@shogun-sdk/one-shot'
+import { formatNumberWithDecimalPlaces, normalizeChainId, denormalizeChainId } from '@/utils'
+import { useAdoptedWallet } from '@/composables/useAdoptedWallet'
+import { networks } from '@/config'
 
 import UiCard from '@/components/ui/card/Card.vue'
-import UiCardContent from '@/components/ui/card/CardContent.vue'
 import UiCardHeader from '@/components/ui/card/CardHeader.vue'
+import UiCardContent from '@/components/ui/card/CardContent.vue'
 import UiCardTitle from '@/components/ui/card/CardTitle.vue'
 import UiButton from '@/components/ui/button/Button.vue'
 import UiInput from '@/components/ui/input/Input.vue'
 import TokenSelector from '@/components/TokenSelector.vue'
 import ChainSelector from '@/components/ChainSelector.vue'
-import { ArrowUpDown, Info, Loader2Icon } from 'lucide-vue-next'
+import { useWalletAddress } from '@/composables/useWalletAddress'
+import { useSwapModal } from '@/composables/useSwapModal'
 
-import { formatUnits } from 'viem'
-import {
-  denormalizeChainId,
-  formatNumberWithDecimalPlaces,
-  formatUSD,
-  normalizeChainId,
-} from '@/utils'
+// ✅ Unified OneShot SDK hooks (no local composable)
+import { useExecuteTransaction, useQuote, useBalances } from '@shogun-sdk/one-shot/vue'
 
-/**
- * Wallet SDKs (EVM/Solana/etc.)
- */
-import { useAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/vue'
-import { networks } from '@/config'
-import { ChainID } from '@shogun-sdk/intents-sdk'
-import { useConfig } from '@wagmi/vue'
-import { toast } from 'vue-sonner'
-
-// Network + wallet state from AppKit (used for EVM/Solana chains)
-const networkData = useAppKitNetwork()
-const connectionData = useAppKitAccount()
+/** 🔧 Hook setup */
+const { execute, stage, message } = useExecuteTransaction()
+const { openModal, closeModal } = useSwapModal()
 const { open } = useAppKit()
-
-// Reactive loading state for the swap button
+const swap = useSwapStore()
+const fromAmount = ref('')
 const loading = ref(false)
 
-// Our global swap store (source/dest chain, tokens, amount, recipient, etc.)
-const swap = useSwapStore()
+const connectionData = useAppKitAccount()
+const networkData = useAppKitNetwork()
+const wagmiConfig = useConfig()
 
-// Fetches quotes (expected output amount, USD values, etc.)
-const quote = useIntentsQuote()
+/** 🌐 Wallet state */
+const isConnected = computed(() => connectionData.value.isConnected)
+const srcChainId = computed(() => swap.srcChain?.id)
+const destChainId = computed(() => swap.destChain?.id)
+const { address: accountAddress } = useWalletAddress(srcChainId)
+const { address: connectDestAccountAddress } = useWalletAddress(destChainId)
+const {addresses} = useWalletAddress()
 
-// User input amount (for "from" token)
-const fromAmount = ref('')
-
-// Wagmi config (used for EVM transactions)
-const evmConfig = useConfig()
-
-// Submit logic for sending the actual swap transaction
-const { submitSwaps, isSubmitting } = useSubmitSwaps()
-
-// Make `srcChain` reactive (so UI updates when it changes)
-const { srcChain } = storeToRefs(swap)
-const srcChainId = computed(() => srcChain.value?.id)
-
-/* Wallet handling (AppKit vs Sui) */
-
-// Sui wallet integration
-const { currentAccount: suiAccount, isConnected: isSuiConnected } = useSuiWallet()
-const { openDialog: openSuiDialog } = useSuiWalletConnectStore()
-
-// Watch the input amount and update the store (as number)
-watch(fromAmount, (val) => {
-  swap.setAmount(val ? Number(val) : 0)
-})
-
-/**
- * Opens the correct wallet modal depending on selected chain:
- * - If Sui → open Sui connector modal
- * - Else (EVM/Solana/etc.) → open AppKit modal
- */
-const openWalletModal = () => {
-  if (srcChainId.value === ChainID.Sui) {
-    openSuiDialog()
-  } else {
-    open()
-  }
-}
-
-/**
- * Checks if user is connected:
- * - If Sui chain → rely on Sui wallet state
- * - Else → rely on AppKit wallet state
- */
-const isConnected = computed(() => {
-  if (srcChainId.value === ChainID.Sui) {
-    return isSuiConnected.value
-  }
-  return connectionData.value.isConnected
-})
-
-/**
- * Returns the correct user account address depending on chain type
- */
-const accountAddress = computed(() => {
-  if (srcChainId.value === ChainID.Sui) {
-    return suiAccount.value?.address
-  }
-  return connectionData.value.address
-})
-
-/**
- * Whether user needs to switch network in their wallet
- * (only applies to EVM chains)
- */
+/** 🚨 Detect wrong network */
 const needsNetworkSwitch = computed(() => {
-  const srcChainId = swap.srcChain?.id
-  if (srcChainId === ChainID.Sui) return false
-  return !!srcChainId && normalizeChainId(networkData.value.chainId as string) !== srcChainId
+  const id = swap.srcChain?.id
+  return id && normalizeChainId(networkData.value.chainId as string) !== id
 })
 
-/* Quote + Output formatting */
+/** 🧮 Track balances using SDK */
+const balancesParams = computed(() => ({
+  addresses: {
+    evm: addresses.value.EVM ?? undefined,
+    svm: addresses.value.SVM ?? undefined,
+  },
+}))
+const {
+  data: balances,
+  refetch: fetchBalances,
+  loading: balanceLoading,
+} = useBalances(balancesParams)
 
-// Format destination amount with proper decimals
-const formattedAmountOut = computed(() => {
-  if (!quote.value.data?.amountOut || !swap.destToken?.decimals) return ''
-  return formatUnits(quote.value.data.amountOut, swap.destToken.decimals)
+/** 🔁 Update swap store when amount changes */
+watch(fromAmount, (val) => {
+  swap.setAmount(Number(val) || 0)
 })
 
-// Display price per token (rate info)
-const pricePerInputToken = computed(() => quote.value.pricePerInputToken)
+/** 🔁 Auto-set recipient when destination wallet changes */
+watch(connectDestAccountAddress, (addr) => {
+  if (addr) swap.setRecipient(addr)
+})
 
-/* UI Actions */
+/** 🔁 Fetch balances on connect/change */
+onMounted(() => {
+  if (accountAddress.value) fetchBalances()
+})
+watch(accountAddress, () => fetchBalances())
 
-/**
- * Swaps source and destination (both chain + token)
- */
-function handleSwapTokens() {
-  if (!swap.srcToken || !swap.destToken || !swap.srcChain || !swap.destChain) {
-    return
+/** ⚡️ Quote params */
+const params = computed(() => {
+  const decimals = swap.srcToken?.decimals ?? 18
+  let amountParsed = '0'
+
+  try {
+    amountParsed = String(parseUnits(String(swap.amount) || '0', decimals))
+  } catch {
+    amountParsed = '0'
   }
 
-  // Swap tokens
-  const tempToken = swap.srcToken
-  swap.setSrcToken(swap.destToken!)
-  swap.setDestToken(tempToken!)
+  return {
+    srcToken: swap.srcToken?.address ?? '',
+    destToken: swap.destToken?.address ?? '',
+    amount: amountParsed,
+    srcChainId: swap.srcChain?.id ?? 1,
+    destChainId: swap.destChain?.id ?? ChainId.SOLANA,
+    senderAddress: accountAddress.value ?? undefined,
+    recipient: swap.recipient ?? undefined,
+    slippage: undefined,
+  }
+})
 
-  // Swap chains
-  const tempChain = swap.srcChain
-  swap.setSrcChain(swap.destChain!)
-  swap.setDestChain(tempChain!)
+/** 💬 Live quote */
+const quote = useQuote(params)
+const formattedAmountOut = computed(() => {
+  if (!quote.data.value?.outputAmount) return ''
+  return formatUnits(
+    BigInt(quote.data.value.outputAmount.value),
+    quote.data.value.outputAmount.decimals,
+  )
+})
+const pricePerInputToken = computed(() => quote.data.value?.pricePerInputToken)
+
+/** 🔍 Get specific token balance */
+function getTokenBalance(address?: string, chainId?: number): string {
+  if (!address || !chainId || !balances.value?.results?.length) return '0'
+  const token =balances.value?.results?.find(
+    (b) => b.address.toLowerCase() === address.toLowerCase() && b.chainId === chainId,
+  )
+  if (!token) return '0'
+  return formatUnits(BigInt(token.balance ?? 0n), token.decimals)
 }
 
-/**
- * Main Swap Button Action:
- * - If not connected → ask user to connect wallet
- * - If needs network switch → prompt wallet to switch
- * - Else → create order & submit transaction
- */
+/** ⚡ Set max amount */
+function setMaxAmount() {
+  // Ensure a valid source token and chain
+  if (!swap.srcToken?.address || !swap.srcChain?.id) return
+
+  // Retrieve balance for the current token on the selected chain
+  const bal = getTokenBalance(swap.srcToken.address, swap.srcChain.id)
+  if (!bal || Number(bal) <= 0) return
+
+  // Convert to number and apply a 0.01% safety buffer
+  const maxAmount = Number(bal) * (1 - 0.0001) // 0.01% less than total balance
+
+  // Update reactive amount fields
+  fromAmount.value = maxAmount.toFixed(swap.srcToken.decimals ?? 6)
+  swap.setAmount(maxAmount)
+}
+
+/** 🔁 Swap tokens + chains */
+function handleSwapTokens() {
+  if (!swap.srcToken || !swap.destToken || !swap.srcChain || !swap.destChain) return
+  ;[swap.srcToken, swap.destToken] = [swap.destToken, swap.srcToken]
+  ;[swap.srcChain, swap.destChain] = [swap.destChain, swap.srcChain]
+}
+
+/** 🚀 Handle Swap Click */
 async function handleSwapClick() {
   try {
     loading.value = true
+    if (!isConnected.value) return open()
+    if (!fromAmount.value || !quote.data.value) return
 
-    // If no wallet connected → open modal
-    if (!isConnected.value) {
-      openWalletModal()
-      return
-    }
-
-    // If no input or quote data → block swap
-    if (!fromAmount.value || !quote.value.data) return
-
-    // Handle EVM network mismatch
     if (needsNetworkSwitch.value) {
+      const target = networks.find((n) => n.id === denormalizeChainId(swap.srcChain?.id as number))
+      if (!target) return
       try {
-        const prepareNetwork = networks.find(
-          (n) => n.id === denormalizeChainId(swap.srcChain?.id as number),
-        )
-        if (!prepareNetwork) return
-        await networkData.value.switchNetwork(prepareNetwork)
+        await networkData.value.switchNetwork(target)
         toast.success(`Switched network to ${swap.srcChain?.name}`)
       } catch {
         toast.error('Failed to switch network. Please try again.')
@@ -343,54 +360,42 @@ async function handleSwapClick() {
       return
     }
 
-    // Try to build an order and send transaction
-    try {
-      // Step 1: Build the order payload
-      const order = await createOrder({
-        quote: {
-          ...quote.value.data,
-          pricePerInputToken: quote.value.pricePerInputToken,
-        },
-        accountAddress: accountAddress.value as string,
-        recipientAddress: swap.recipient,
-        config: evmConfig,
-      })
+    const adaptedWallet = await useAdoptedWallet(
+      accountAddress.value!,
+      srcChainId.value!,
+      wagmiConfig,
+    )
 
-      if (!order) throw Error('Order not generated')
+    const order = await execute({
+      quote: quote.data.value,
+      wallet: adaptedWallet,
+    })
 
-      // Step 2: Determine if this is a same-chain swap
-      const isSingleChainSwap =
-        quote.value.data.inputToken.chainId === quote.value.data.outputToken.chainId
-
-      // Step 3: Submit swap via submitSwaps()
-      const result = await submitSwaps(
-        quote.value.data.inputToken.chainId as number,
-        isSingleChainSwap,
-        accountAddress.value as string,
-        order,
-        {
-          ...quote.value.data,
-          pricePerInputToken: quote.value.pricePerInputToken,
-        },
-      )
-
-      // Step 4: Show success/failure notification
-      if (result.status) {
-        toast.success(`Order created!\nTx Hash: ${result.txHash}`)
-      } else {
-        toast.error(result.message ?? 'Order submission failed.')
-      }
-    } catch (err) {
-      // Catch unexpected errors
-      toast.error(
-        err instanceof Error
-          ? `${err.message}`
-          : 'An unexpected error occurred while creating the order.',
-      )
-    }
+    if (order?.status) toast.success('🎉 Order executed successfully!', { duration: 4000 })
   } finally {
-    // Always clear loading spinner
     loading.value = false
   }
 }
+
+/** 🎬 Stage watcher for modals */
+watch([stage, message], ([newStage, newMessage]) => {
+  if (!newStage) return
+
+  console.groupCollapsed(`🧭 Transaction Stage: ${newStage}`)
+  console.log('Stage:', newStage)
+  console.log('Message:', message.value)
+  console.groupEnd()
+
+  if (newStage === 'processing') {
+    openModal('processing', newMessage ?? '')
+  } else if (newStage === 'initiated') {
+    openModal('initiated', newMessage ?? '')
+  } else if (newStage === 'success') {
+    openModal('success', newMessage ?? '')
+    fetchBalances()
+    setTimeout(closeModal, 3000)
+  } else if (newStage === 'error') {
+    openModal('error', newMessage || 'An error occurred while processing your swap.')
+  }
+})
 </script>
