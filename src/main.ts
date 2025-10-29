@@ -15,6 +15,7 @@ const app = createApp(App)
 //  Create SDK instance
 const sdk = provideOneShot({
   apiKey: import.meta.env.VITE_DEXTRA_KEY,
+  jitoApiKey: import.meta.env.VITE_JITO_KEY,
 })
 
 //  Provide the instance to Vue’s DI system

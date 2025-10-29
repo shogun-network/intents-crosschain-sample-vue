@@ -24,7 +24,7 @@
     "@reown/appkit": "^1.8.7",
     "@reown/appkit-adapter-solana": "^1.8.7",
     "@reown/appkit-adapter-wagmi": "^1.8.7",
-    "@shogun-sdk/one-shot": "2.0.0-beta.0",
+    "@shogun-sdk/one-shot": "^2.0.12",
     "@solana-program/system": "^0.8.0",
     "@solana-program/token": "^0.6.0",
     "@solana/kit": "^3.0.3",
