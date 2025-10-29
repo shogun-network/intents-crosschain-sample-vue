@@ -1,5 +1,5 @@
 import { solana } from '@reown/appkit/networks'
-import { ChainID } from '@shogun-sdk/intents-sdk'
+import { ChainId } from '@shogun-sdk/one-shot'
 
 /**
  * Normalize chainId values across connectors and the Intents SDK.
@@ -15,12 +15,12 @@ import { ChainID } from '@shogun-sdk/intents-sdk'
  */
 export function normalizeChainId(chainId: string | number) {
   if (chainId === solana.id) {
-    return ChainID.Solana
+    return ChainId.SOLANA
   }
   return Number(chainId)
 }
 export function denormalizeChainId(chainId: string | number) {
-  if (chainId === ChainID.Solana) {
+  if (chainId === ChainId.SOLANA) {
     return solana.id
   }
   return chainId

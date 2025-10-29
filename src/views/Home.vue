@@ -7,14 +7,14 @@
       </div>
     </main>
     <Toaster />
-    <WalletConnectDialog />
+    <SwapStatusModal />
   </div>
 </template>
 
 <script setup lang="ts">
 import Header from '@/components/AppHeader.vue'
 import SwapInterface from '@/components/SwapInterface.vue'
-import WalletConnectDialog from '@/components/WalletConnectDialog.vue'
+import SwapStatusModal from '@/components/SwapStatusModal.vue'
 import { Toaster } from 'vue-sonner'
 
 import 'vue-sonner/style.css'

@@ -1,5 +1,4 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
@@ -7,7 +6,6 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
@@ -22,6 +20,14 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       crypto: 'crypto-browserify',
+      process: 'vite-plugin-node-polyfills/shims/process',
+      buffer: 'vite-plugin-node-polyfills/shims/buffer',
+      global: 'vite-plugin-node-polyfills/shims/global',
+      'zod/mini': 'zod',
+    },
+  },
+  build: {
+    rollupOptions: {
     },
   },
 })

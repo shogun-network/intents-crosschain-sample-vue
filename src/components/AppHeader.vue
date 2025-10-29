@@ -4,146 +4,113 @@
       <div class="flex items-center justify-between">
         <!-- Logo -->
         <div class="flex items-center gap-2">
-          <div class="flex items-center justify-center">
-            <img src="/images/logo.png" class="block w-12" alt="shogun logo" />
-          </div>
+          <img src="/images/logo.png" class="block w-12" alt="Shogun logo" />
         </div>
 
-        <!-- Wallet section (desktop only) -->
+        <!-- Desktop Wallet Section -->
         <div class="hidden md:flex items-center gap-4">
-          <!-- If user is connected, show address + disconnect button -->
-          <div v-if="isConnected" class="flex items-center gap-2">
-            <span class="text-sm text-muted-foreground">
-              {{ shortAddress }}
-            </span>
-            <UiButton variant="outline" class="gap-2" @click="handleDisconnect">
-              <Wallet class="w-4 h-4" />
-              Disconnect
-            </UiButton>
-          </div>
+          <!-- 🌐 Both wallets connected -->
+          <template v-if="isEvmConnected && isSolConnected">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-muted-foreground">{{ shortEvmAddress }}</span>
+              <UiButton variant="outline" size="sm" class="gap-2" @click="disconnectEvm">
+                <Wallet class="w-4 h-4" /> EVM
+              </UiButton>
+            </div>
 
-          <!-- If user is not connected, show connect button -->
-          <UiButton v-else class="gap-2" @click="openWalletModal">
-            <Wallet class="w-4 h-4" />
-            Connect Wallet
-          </UiButton>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-muted-foreground">{{ shortSolAddress }}</span>
+              <UiButton variant="outline" size="sm" class="gap-2" @click="disconnectSolana">
+                <Wallet class="w-4 h-4" /> Solana
+              </UiButton>
+            </div>
+          </template>
+
+          <!-- 💫 Only EVM connected -->
+          <template v-else-if="isEvmConnected && !isSolConnected">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-muted-foreground">{{ shortEvmAddress }}</span>
+              <UiButton variant="outline" size="sm" class="gap-2" @click="disconnectEvm">
+                <Wallet class="w-4 h-4" /> Disconnect
+              </UiButton>
+            </div>
+            <UiButton class="gap-2" @click="connectSolana">
+              <Wallet class="w-4 h-4" /> Connect Solana
+            </UiButton>
+          </template>
+
+          <!-- ⚡ Only Solana connected -->
+          <template v-else-if="isSolConnected && !isEvmConnected">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-muted-foreground">{{ shortSolAddress }}</span>
+              <UiButton variant="outline" size="sm" class="gap-2" @click="disconnectSolana">
+                <Wallet class="w-4 h-4" /> Disconnect
+              </UiButton>
+            </div>
+            <UiButton class="gap-2" @click="connectEvm">
+              <Wallet class="w-4 h-4" /> Connect EVM
+            </UiButton>
+          </template>
+
+          <!-- ❌ No wallet connected -->
+          <template v-else>
+            <UiButton class="gap-2" @click="connectWallet">
+              <Wallet class="w-4 h-4" /> Connect Wallet
+            </UiButton>
+          </template>
         </div>
 
-        <!-- Mobile menu toggle -->
-        <UiButton variant="ghost" size="icon" class="md:hidden">
-          <Menu class="w-5 h-5" />
-        </UiButton>
+     
       </div>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { storeToRefs } from 'pinia'
+import { computed } from 'vue'
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/vue'
 import UiButton from './ui/button/Button.vue'
-import { Wallet, Menu } from 'lucide-vue-next'
-import { useSuiWalletConnectStore, useSwapStore } from '@/stores'
-import { useSuiWallet } from '@/composables/useSuiWallet'
-import { ChainID } from '@shogun-sdk/intents-sdk'
+import { Wallet } from 'lucide-vue-next'
 import { shortenAddress } from '@/utils'
 
-/**
- * AppKit handles EVM/Solana wallets (MetaMask, Phantom, etc.)
- */
-const { disconnect } = useDisconnect()
+/** Multiple wallet namespaces supported by AppKit */
 const { open } = useAppKit()
-const accountInfo = useAppKitAccount()
-const isAppKitConnected = computed(() => accountInfo.value.isConnected)
-const appKitAddress = computed(() => accountInfo.value.address)
+const { disconnect } = useDisconnect()
 
-/**
- * Swap store gives us the currently selected chain (EVM, Solana, Sui, etc.)
- * Using storeToRefs ensures srcChain stays reactive when updated.
- */
-const swapStore = useSwapStore()
-const { srcChain } = storeToRefs(swapStore)
-const srcChainId = computed(() => srcChain.value?.id)
+// --- EVM Wallet ---
+const evmAccount = useAppKitAccount({ namespace: 'eip155' })
+const isEvmConnected = computed(() => evmAccount.value.isConnected)
+const evmAddress = computed(() => evmAccount.value.address ?? '')
+const shortEvmAddress = computed(() => shortenAddress(evmAddress.value))
 
-/**
- * Sui wallet composable manages native Sui wallets (e.g. Suiet, Ethos)
- */
-const {
-  currentAccount,
-  isConnected: isSuiConnected,
-  restoreConnection: restoreSuiConnection,
-  disconnect: disconnectSui,
-} = useSuiWallet()
-const { openDialog: openSuiDialog } = useSuiWalletConnectStore()
+// --- Solana Wallet ---
+const solAccount = useAppKitAccount({ namespace: 'solana' })
+const isSolConnected = computed(() => solAccount.value.isConnected)
+const solAddress = computed(() => solAccount.value.address ?? '')
+const shortSolAddress = computed(() => shortenAddress(solAddress.value))
 
-/**
- * Effective "isConnected" flag:
- * - If current chain is Sui, use Sui wallet connection
- * - Otherwise, use AppKit connection
- */
-const isConnected = computed(() => {
-  if (srcChainId.value === ChainID.Sui) {
-    return isSuiConnected.value
-  }
-  return isAppKitConnected.value
-})
+/** Connect functions */
+const connectWallet = () => open()
+const connectEvm = () => open({ namespace: 'eip155' })
+const connectSolana = () => open({ namespace: 'solana' })
 
-/**
- * Effective address:
- * - If current chain is Sui, use the Sui account address
- * - Otherwise, use the AppKit account address
- */
-const address = computed(() => {
-  if (srcChainId.value === ChainID.Sui) {
-    return currentAccount.value?.address ?? ''
-  }
-  return appKitAddress.value ?? ''
-})
-
-/**
- * Shortened address for UI display (0x1234...abcd)
- */
-const shortAddress = computed(() => shortenAddress(address.value))
-/**
- * Opens the correct wallet connect modal based on chain:
- * - Sui → open native Sui dialog
- * - Others → open AppKit modal
- */
-const openWalletModal = () => {
-  if (srcChainId.value === ChainID.Sui) {
-    openSuiDialog()
-  } else {
-    open()
-  }
-}
-
-/**
- * Disconnect handler:
- * - Calls the correct disconnect function depending on chain
- */
-const handleDisconnect = async () => {
+/** Disconnect functions */
+const disconnectEvm = async () => {
   try {
-    if (srcChainId.value === ChainID.Sui) {
-      await disconnectSui()
-    } else {
-      await disconnect()
-    }
-  } catch (error) {
-    console.error('Error during disconnect:', error)
+    await disconnect({ namespace: 'eip155' })
+  } catch (err) {
+    console.error('EVM disconnect failed:', err)
   }
 }
-
-/**
- * On mount, restore Sui connection if user was previously connected
- */
-onMounted(() => {
-  restoreSuiConnection()
-})
+const disconnectSolana = async () => {
+  try {
+    await disconnect({ namespace: 'solana' })
+  } catch (err) {
+    console.error('Solana disconnect failed:', err)
+  }
+}
 </script>
 
 <script lang="ts">
-export default {
-  name: 'AppHeader',
-}
+export default { name: 'AppHeader' }
 </script>

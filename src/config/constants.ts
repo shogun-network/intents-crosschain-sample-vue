@@ -1,3 +1,6 @@
+import { defineChain } from "@reown/appkit/networks"
+import { chainConfig } from 'viem/op-stack'
+
 export const TOAST_MESSAGES = {
   TX_STAGES: {
     APPROVE: {
@@ -168,3 +171,18 @@ export const WETH_ABI = [
     type: 'event',
   },
 ] as const
+
+
+
+export const hyperliquid = defineChain({
+  ...chainConfig,
+  id: 999 as const,
+  name: 'hyperliquid',
+  testnet: false,
+  nativeCurrency: { name: 'Hype', symbol: 'HYPE', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.hyperliquid.xyz/evm'] } },
+  blockExplorers: { default: { name: 'HyperEVMScan', url: 'https://hyperevmscan.io/' } },
+  chainNamespace: "eip155",
+  caipNetworkId: 'eip155:999',
+
+})
