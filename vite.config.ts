@@ -22,7 +22,8 @@ export default defineConfig({
       crypto: 'crypto-browserify',
       process: 'vite-plugin-node-polyfills/shims/process',
       buffer: 'vite-plugin-node-polyfills/shims/buffer',
-      global: 'vite-plugin-node-polyfills/shims/global'
+      global: 'vite-plugin-node-polyfills/shims/global',
+      'zod/mini': 'zod',
     },
   },
   build: {
